@@ -1,0 +1,63 @@
+global function ClJumpPad_Init
+global function ServerCallback_DisplayJumpPadHint
+
+void function ServerCallback_DisplayJumpPadHint()
+{
+	thread DisplayJumpPadHint()
+}
+
+void function DisplayJumpPadHint()
+{
+	entity player = GetLocalViewPlayer()
+
+	if ( !IsValid( player ) )
+		return
+
+	if ( player.IsOnGround() )
+		return
+
+	EndSignal( player, "OnDeath" )
+
+	AddPlayerHint( 10.0, 0.25, $"", "Jump to Double Jump" )
+
+	OnThreadEnd(function() : ()
+	{
+		HidePlayerHint( "Jump to Double Jump" )
+	})
+
+	while ( !player.IsOnGround() && !player.IsZiplining() && !player.IsDoubleJumping() && !Bleedout_IsBleedingOut( player ) )
+	{
+		WaitFrame()
+	}
+}
+
+void function ClJumpPad_Init()
+{
+	AddCreateCallback( "trigger_cylinder_heavy", OnJumpPadCreated )
+}
+
+void function OnJumpPadCreated( entity trigger )
+{
+	if ( trigger.GetTriggerType() != TT_JUMP_PAD )
+		return
+
+	if ( trigger.GetTargetName() == "geyser_trigger" )
+		return
+
+	trigger.SetClientEnterCallback( OnJumpPadAreaEnter )
+}
+
+void function OnJumpPadAreaEnter( entity trigger, entity player )
+{
+	entity localViewPlayer = GetLocalViewPlayer()
+	if ( player != localViewPlayer )
+		return
+
+	if ( !IsPilot( player ) )
+		return
+
+	EmitSoundOnEntity( player, "JumpPad_LaunchPlayer_1p" )
+	EmitSoundOnEntity( player, "JumpPad_Ascent_Windrush" )
+
+	Chroma_UsedJumpPad()
+}
